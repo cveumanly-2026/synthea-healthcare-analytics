@@ -104,3 +104,24 @@ BEGIN
         SET @end_time = GETDATE();
         PRINT '>> Load Duration: ' + CAST(DATEDIFF(second, @start_time, @end_time) AS NVARCHAR(10)) + ' seconds'; 
 
+ 		-- 4. bronze.ehr_procedures Table Processing
+        SET @start_time = GETDATE();
+        PRINT '>> Truncating Table: bronze.ehr_procedures'; 
+        TRUNCATE TABLE bronze.ehr_procedures;
+
+        PRINT '>> Inserting Data Into: bronze.ehr_procedures';
+        BULK INSERT bronze.ehr_procedures
+        FROM 'C:\SyntheaTM\EHR\procedures.csv'
+        WITH
+        (
+            FORMAT = 'CSV',
+            FIRSTROW = 2,
+            FIELDTERMINATOR = ',',
+            FIELDQUOTE = '"',
+            ROWTERMINATOR = '0x0a',
+            CODEPAGE = '65001',
+            TABLOCK
+        );
+        SET @end_time = GETDATE();
+        PRINT '>> Load Duration: ' + CAST(DATEDIFF(second, @start_time, @end_time) AS NVARCHAR(10))
+
