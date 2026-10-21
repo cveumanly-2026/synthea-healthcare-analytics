@@ -83,22 +83,10 @@ CREATE TABLE bronze.ehr_procedures (
 );
 GO
 
-===============================================================================
-HIPAA-Informed Patient Data Minimization
-	This process creates a staging table (ehr_patients_old) containing the original 
-	patient dataset, then removes selected direct identifiers and personal information. 
-	A refined table (ehr_patients) is subsequently created with a reduced set of columns
-	to minimize unnecessary exposure of sensitive patient information.
-
-Note: This is a data-minimization step, not proof of HIPAA compliance. 
-The remaining patient ID, birth/death dates, and geographic information may still 
-constitute PHI. Further de-identification and validation are required before 
-the dataset can be considered HIPAA-compliant.
-===============================================================================
-
+-- Create the first patients table in bronze layer
 IF OBJECT_ID ('bronze.ehr_patients_old' , 'U') IS NOT NULL
 	DROP TABLE bronze.ehr_patients_old;
-CREATE TABLE bronze.ehr_patients_old ( -- Create the first patient table in bronze layer
+CREATE TABLE bronze.ehr_patients_old ( 
     px_id                 NVARCHAR(36)   NULL,
     birth_dt              NVARCHAR(30)   NULL,
     death_dt              NVARCHAR(30)   NULL,
@@ -126,39 +114,8 @@ CREATE TABLE bronze.ehr_patients_old ( -- Create the first patient table in bron
     healthcare_coverage   NVARCHAR(50)   NULL
 );
 GO 
-TRUNCATE TABLE bronze.ehr_patients_old; -- Insert the original ehr.patient 
-BULK INSERT bronze.ehr_patients_old
-FROM 'C:\SyntheaTM\EHR\patients.csv'
-WITH (
-	FORMAT = 'CSV',
-    FIRSTROW = 2,
-    FIELDTERMINATOR = ',',
-    FIELDQUOTE = '"',
-    ROWTERMINATOR = '0x0a',
-    CODEPAGE = '65001',
-    TABLOCK
-);
-GO
-ALTER TABLE bronze.ehr_patients_old -- Drop columns contain PHI
-DROP COLUMN
-    ssn,
-    drivers,
-    passport,
-    name_prefix,
-    first_name,
-    last_name,
-    name_suffix,
-    maiden_name,
-    birthplace,
-    address,
-    city,
-    county,
-    zip_code,
-    latitude,
-    longitude;
-GO
 
--- Create the second provider table in bronze layer 
+-- Create the second patients table in bronze layer 
 IF OBJECT_ID ('bronze.ehr_patients' , 'U') IS NOT NULL 
 	DROP TABLE bronze.ehr_patients;
 CREATE TABLE bronze.ehr_patients
@@ -175,9 +132,9 @@ CREATE TABLE bronze.ehr_patients
     healthcare_expenses   NVARCHAR(50)   NULL,
     healthcare_coverage   NVARCHAR(50)   NULL
 );
+GO
 
---------------------------------------------------------------
-
+-- Create the first providers table in bronze layer
 IF OBJECT_ID ('bronze.ehr_providers_old' , 'U') IS NOT NULL
 	DROP TABLE bronze.ehr_providers_old;
 CREATE TABLE bronze.ehr_providers_old ( -- Create the first provider table in bronze layer
@@ -195,30 +152,8 @@ CREATE TABLE bronze.ehr_providers_old ( -- Create the first provider table in br
     utilization   INT            NULL
 );
 GO
-TRUNCATE TABLE bronze.ehr_providers_old
-BULK INSERT bronze.ehr_providers_old -- Insert the original ehr.providers
-FROM 'C:\SyntheaTM\EHR\providers.csv'
-WITH (
-	FORMAT = 'CSV',
-    FIRSTROW = 2,
-    FIELDTERMINATOR = ',',
-    FIELDQUOTE = '"',
-    ROWTERMINATOR = '0x0a',
-    CODEPAGE = '65001',
-    TABLOCK
-);
-GO
-ALTER TABLE bronze.ehr_providers_old -- Drop columns contain PHI
-DROP COLUMN
-    provider_name,
-    address,
-    city,
-    zip_code,
-    latitude,
-    longitude;
-GO
 
--- Create the second provider table in bronze layer
+-- Create the second providers table in bronze layer
 IF OBJECT_ID ('bronze.ehr_providers' , 'U') IS NOT NULL 
 	DROP TABLE bronze.ehr_providers;
 CREATE TABLE bronze.ehr_providers (
