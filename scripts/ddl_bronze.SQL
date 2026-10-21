@@ -68,24 +68,6 @@ CREATE TABLE bronze.ehr_medications (
 );
 GO
 
-IF OBJECT_ID ('bronze.ehr_patients' , 'U') IS NOT NULL -- HIPAA-informed data minimization
-	DROP TABLE bronze.ehr_patients;
-CREATE TABLE bronze.ehr_patients
-(
-    px_id                 NVARCHAR(36)   NULL,
-    birth_dt              NVARCHAR(30)   NULL,
-    death_dt              NVARCHAR(30)   NULL,
-    marital_status        NVARCHAR(20)   NULL,
-    race                  NVARCHAR(50)   NULL,
-    ethnicity             NVARCHAR(50)   NULL,
-    gender                NVARCHAR(20)   NULL,
-    state                 NVARCHAR(100)  NULL,
-    county                NVARCHAR(100)  NULL,
-    healthcare_expenses   NVARCHAR(50)   NULL,
-    healthcare_coverage   NVARCHAR(50)   NULL
-);
-GO
-
 IF OBJECT_ID ('bronze.ehr_procedures' , 'U') IS NOT NULL
 	DROP TABLE bronze.ehr_procedures;
 CREATE TABLE bronze.ehr_procedures (
@@ -101,7 +83,115 @@ CREATE TABLE bronze.ehr_procedures (
 );
 GO
 
-IF OBJECT_ID ('bronze.ehr_providers' , 'U') IS NOT NULL -- HIPAA-informed data minimization
+===============================================================================
+HIPAA-Informed Patient Data Minimization
+	This process creates a staging table (ehr_patients_old) containing the original 
+	patient dataset, then removes selected direct identifiers and personal information. 
+	A refined table (ehr_patients) is subsequently created with a reduced set of columns
+	to minimize unnecessary exposure of sensitive patient information.
+
+Note: This is a data-minimization step, not proof of HIPAA compliance. 
+The remaining patient ID, birth/death dates, and geographic information may still 
+constitute PHI. Further de-identification and validation are required before 
+the dataset can be considered HIPAA-compliant.
+===============================================================================
+
+IF OBJECT_ID ('bronze.ehr_patients_old' , 'U') IS NOT NULL
+	DROP TABLE bronze.ehr_patients_old;
+CREATE TABLE bronze.ehr_patients_old ( 
+    px_id                 NVARCHAR(36)   NULL,
+    birth_dt              NVARCHAR(30)   NULL,
+    death_dt              NVARCHAR(30)   NULL,
+    ssn                   NVARCHAR(20)   NULL,
+    drivers               NVARCHAR(50)   NULL,
+    passport              NVARCHAR(50)   NULL,
+    name_prefix           NVARCHAR(20)   NULL,
+    first_name            NVARCHAR(100)  NULL,
+    last_name             NVARCHAR(100)  NULL,
+    name_suffix           NVARCHAR(20)   NULL,
+    maiden_name           NVARCHAR(100)  NULL,
+    marital_status        NVARCHAR(20)   NULL,
+    race                  NVARCHAR(50)   NULL,
+    ethnicity             NVARCHAR(50)   NULL,
+    gender                NVARCHAR(20)   NULL,
+    birthplace            NVARCHAR(255)  NULL,
+    address               NVARCHAR(255)  NULL,
+    city                  NVARCHAR(100)  NULL,
+    state                 NVARCHAR(100)  NULL,
+    county                NVARCHAR(100)  NULL,
+    zip_code              NVARCHAR(20)   NULL,
+    latitude              NVARCHAR(50)   NULL,
+    longitude             NVARCHAR(50)   NULL,
+    healthcare_expenses   NVARCHAR(50)   NULL,
+    healthcare_coverage   NVARCHAR(50)   NULL
+);
+GO 
+ALTER TABLE bronze.ehr_patients_old
+DROP COLUMN
+    ssn,
+    drivers,
+    passport,
+    name_prefix,
+    first_name,
+    last_name,
+    name_suffix,
+    maiden_name,
+    birthplace,
+    address,
+    city,
+    county,
+    zip_code,
+    latitude,
+    longitude;
+GO
+
+IF OBJECT_ID ('bronze.ehr_patients' , 'U') IS NOT NULL 
+	DROP TABLE bronze.ehr_patients;
+CREATE TABLE bronze.ehr_patients
+(
+    px_id                 NVARCHAR(36)   NULL,
+    birth_dt              NVARCHAR(30)   NULL,
+    death_dt              NVARCHAR(30)   NULL,
+    marital_status        NVARCHAR(20)   NULL,
+    race                  NVARCHAR(50)   NULL,
+    ethnicity             NVARCHAR(50)   NULL,
+    gender                NVARCHAR(20)   NULL,
+    state                 NVARCHAR(100)  NULL,
+    county                NVARCHAR(100)  NULL,
+    healthcare_expenses   NVARCHAR(50)   NULL,
+    healthcare_coverage   NVARCHAR(50)   NULL
+);
+
+--------------------------------------------------------------
+
+IF OBJECT_ID ('bronze.ehr_providers_old' , 'U') IS NOT NULL
+	DROP TABLE bronze.ehr_providers_old;
+CREATE TABLE bronze.ehr_providers_old (
+    provider_id   NVARCHAR(36)   NULL,
+    org_id        NVARCHAR(36)   NULL,
+    provider_name NVARCHAR(255)  NULL,
+    gender        NVARCHAR(20)   NULL,
+    specialty     NVARCHAR(100)  NULL,
+    address       NVARCHAR(255)  NULL,
+    city          NVARCHAR(100)  NULL,
+    state         NVARCHAR(100)  NULL,
+    zip_code      NVARCHAR(20)   NULL,
+    latitude      DECIMAL(10,7)  NULL,
+    longitude     DECIMAL(11,7)  NULL,
+    utilization   INT            NULL
+);
+GO
+ALTER TABLE bronze.ehr_providers_old
+DROP COLUMN
+    provider_name,
+    address,
+    city,
+    zip_code,
+    latitude,
+    longitude;
+GO
+
+IF OBJECT_ID ('bronze.ehr_providers' , 'U') IS NOT NULL 
 	DROP TABLE bronze.ehr_providers;
 CREATE TABLE bronze.ehr_providers (
     provider_id  NVARCHAR(36)  NULL,
@@ -111,5 +201,5 @@ CREATE TABLE bronze.ehr_providers (
 	state        NVARCHAR(100) NULL,
 	utilization  INT           NULL
 );
-GO
+
 
