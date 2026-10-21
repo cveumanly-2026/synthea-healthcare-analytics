@@ -98,7 +98,7 @@ the dataset can be considered HIPAA-compliant.
 
 IF OBJECT_ID ('bronze.ehr_patients_old' , 'U') IS NOT NULL
 	DROP TABLE bronze.ehr_patients_old;
-CREATE TABLE bronze.ehr_patients_old ( 
+CREATE TABLE bronze.ehr_patients_old ( -- Create the first patient table in bronze layer
     px_id                 NVARCHAR(36)   NULL,
     birth_dt              NVARCHAR(30)   NULL,
     death_dt              NVARCHAR(30)   NULL,
@@ -126,7 +126,20 @@ CREATE TABLE bronze.ehr_patients_old (
     healthcare_coverage   NVARCHAR(50)   NULL
 );
 GO 
-ALTER TABLE bronze.ehr_patients_old
+TRUNCATE TABLE bronze.ehr_patients_old; -- Insert the original ehr.patient 
+BULK INSERT bronze.ehr_patients_old
+FROM 'C:\SyntheaTM\EHR\patients.csv'
+WITH (
+	FORMAT = 'CSV',
+    FIRSTROW = 2,
+    FIELDTERMINATOR = ',',
+    FIELDQUOTE = '"',
+    ROWTERMINATOR = '0x0a',
+    CODEPAGE = '65001',
+    TABLOCK
+);
+GO
+ALTER TABLE bronze.ehr_patients_old -- Drop columns contain PHI
 DROP COLUMN
     ssn,
     drivers,
@@ -145,6 +158,7 @@ DROP COLUMN
     longitude;
 GO
 
+-- Create the second provider table in bronze layer 
 IF OBJECT_ID ('bronze.ehr_patients' , 'U') IS NOT NULL 
 	DROP TABLE bronze.ehr_patients;
 CREATE TABLE bronze.ehr_patients
@@ -166,7 +180,7 @@ CREATE TABLE bronze.ehr_patients
 
 IF OBJECT_ID ('bronze.ehr_providers_old' , 'U') IS NOT NULL
 	DROP TABLE bronze.ehr_providers_old;
-CREATE TABLE bronze.ehr_providers_old (
+CREATE TABLE bronze.ehr_providers_old ( -- Create the first provider table in bronze layer
     provider_id   NVARCHAR(36)   NULL,
     org_id        NVARCHAR(36)   NULL,
     provider_name NVARCHAR(255)  NULL,
@@ -181,7 +195,20 @@ CREATE TABLE bronze.ehr_providers_old (
     utilization   INT            NULL
 );
 GO
-ALTER TABLE bronze.ehr_providers_old
+TRUNCATE TABLE bronze.ehr_providers_old
+BULK INSERT bronze.ehr_providers_old -- Insert the original ehr.providers
+FROM 'C:\SyntheaTM\EHR\providers.csv'
+WITH (
+	FORMAT = 'CSV',
+    FIRSTROW = 2,
+    FIELDTERMINATOR = ',',
+    FIELDQUOTE = '"',
+    ROWTERMINATOR = '0x0a',
+    CODEPAGE = '65001',
+    TABLOCK
+);
+GO
+ALTER TABLE bronze.ehr_providers_old -- Drop columns contain PHI
 DROP COLUMN
     provider_name,
     address,
@@ -191,6 +218,7 @@ DROP COLUMN
     longitude;
 GO
 
+-- Create the second provider table in bronze layer
 IF OBJECT_ID ('bronze.ehr_providers' , 'U') IS NOT NULL 
 	DROP TABLE bronze.ehr_providers;
 CREATE TABLE bronze.ehr_providers (
