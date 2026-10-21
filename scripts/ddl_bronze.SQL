@@ -3,13 +3,16 @@
 DDL Script: Create Bronze Tables
 ===============================================================================
 Script Purpose:
-    Creates Bronze tables for the Synthea Healthcare Analytics project
-    to store synthetic EHR data from CSV files, including raw and
-    privacy-filtered tables.
+Creates Bronze tables for the Synthea Healthcare Analytics project.
+The Bronze layer stores approved synthetic EHR data ingested from CSV files.
 
-Source data includes fields that resemble HIPAA-defined identifiers.
-    These fields will be assessed and filtered during Silver-layer
-    transformation to remove unnecessary identifying information.
+Data Privacy:
+An explicit column allowlist is applied before Bronze ingestion.
+Unnecessary identifying fields are excluded before entering Bronze.
+Silver handles data cleaning, standardization, and validation.
+
+===============================================================================
+*/
 ===============================================================================
 */
 
@@ -65,33 +68,19 @@ CREATE TABLE bronze.ehr_medications (
 );
 GO
 
-IF OBJECT_ID ('bronze.ehr_patients_old' , 'U') IS NOT NULL
-	DROP TABLE bronze.ehr_patients_old;
-CREATE TABLE bronze.ehr_patients_old
+IF OBJECT_ID ('bronze.ehr_patients' , 'U') IS NOT NULL -- HIPAA-informed data minimization
+	DROP TABLE bronze.ehr_patients;
+CREATE TABLE bronze.ehr_patients
 (
     px_id                 NVARCHAR(36)   NULL,
     birth_dt              NVARCHAR(30)   NULL,
     death_dt              NVARCHAR(30)   NULL,
-    ssn                   NVARCHAR(20)   NULL,
-    drivers               NVARCHAR(50)   NULL,
-    passport              NVARCHAR(50)   NULL,
-    name_prefix           NVARCHAR(20)   NULL,
-    first_name            NVARCHAR(100)  NULL,
-    last_name             NVARCHAR(100)  NULL,
-    name_suffix           NVARCHAR(20)   NULL,
-    maiden_name           NVARCHAR(100)  NULL,
     marital_status        NVARCHAR(20)   NULL,
     race                  NVARCHAR(50)   NULL,
     ethnicity             NVARCHAR(50)   NULL,
     gender                NVARCHAR(20)   NULL,
-    birthplace            NVARCHAR(255)  NULL,
-    address               NVARCHAR(255)  NULL,
-    city                  NVARCHAR(100)  NULL,
     state                 NVARCHAR(100)  NULL,
     county                NVARCHAR(100)  NULL,
-    zip_code              NVARCHAR(20)   NULL,
-    latitude              NVARCHAR(50)   NULL,
-    longitude             NVARCHAR(50)   NULL,
     healthcare_expenses   NVARCHAR(50)   NULL,
     healthcare_coverage   NVARCHAR(50)   NULL
 );
@@ -112,21 +101,15 @@ CREATE TABLE bronze.ehr_procedures (
 );
 GO
 
-IF OBJECT_ID ('bronze.ehr_providers_old' , 'U') IS NOT NULL
-	DROP TABLE bronze.ehr_providers_old;
-CREATE TABLE bronze.ehr_providers_old (
-    provider_id   NVARCHAR(36)   NULL,
-    org_id        NVARCHAR(36)   NULL,
-    provider_name NVARCHAR(255)  NULL,
-    gender        NVARCHAR(20)   NULL,
-    specialty     NVARCHAR(100)  NULL,
-    address       NVARCHAR(255)  NULL,
-    city          NVARCHAR(100)  NULL,
-    state         NVARCHAR(100)  NULL,
-    zip_code      NVARCHAR(20)   NULL,
-    latitude      DECIMAL(10,7)  NULL,
-    longitude     DECIMAL(11,7)  NULL,
-    utilization   INT            NULL
+IF OBJECT_ID ('bronze.ehr_providers' , 'U') IS NOT NULL -- HIPAA-informed data minimization
+	DROP TABLE bronze.ehr_providers;
+CREATE TABLE bronze.ehr_providers (
+    provider_id  NVARCHAR(36)  NULL,
+	org_id       NVARCHAR(36)  NULL,
+	gender       NVARCHAR(20)  NULL,
+	specialty    NVARCHAR(100) NULL,
+	state        NVARCHAR(100) NULL,
+	utilization  INT           NULL
 );
 GO
 
