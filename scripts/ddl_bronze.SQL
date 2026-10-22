@@ -128,7 +128,6 @@ CREATE TABLE bronze.ehr_patients
     ethnicity             NVARCHAR(50)   NULL,
     gender                NVARCHAR(20)   NULL,
     state                 NVARCHAR(100)  NULL,
-    county                NVARCHAR(100)  NULL,
     healthcare_expenses   NVARCHAR(50)   NULL,
     healthcare_coverage   NVARCHAR(50)   NULL
 );
