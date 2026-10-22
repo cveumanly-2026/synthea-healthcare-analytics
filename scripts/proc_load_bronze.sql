@@ -194,21 +194,27 @@ BEGIN
         -- Transfer data into the second table
         INSERT INTO bronze.ehr_patients (
             px_id,
+			birth_dt,
+    		death_dt,
             marital_status,
             race,
             ethnicity,
             gender,
             state,
+			county,
             healthcare_expenses,
             healthcare_coverage
             )
         SELECT
             px_id,
+			birth_dt,
+    		death_dt,
             marital_status,
             race,
             ethnicity,
             gender,
             state,
+			county,
             TRY_CONVERT(DECIMAL(18,2), healthcare_expenses),
             TRY_CONVERT(DECIMAL(18,2), healthcare_coverage)
         FROM bronze.ehr_patients_old;
