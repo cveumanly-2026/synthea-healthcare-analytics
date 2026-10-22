@@ -127,6 +127,7 @@ BEGIN
 
        	-- 5. bronze.ehr_patients_old Table Processing
         SET @start_time = GETDATE();
+		-- Create first patients table to load the original csv data
         IF OBJECT_ID ('bronze.ehr_patients_old' , 'U') IS NOT NULL
 			DROP TABLE bronze.ehr_patients_old;
 		CREATE TABLE bronze.ehr_patients_old ( 
@@ -191,6 +192,22 @@ BEGIN
             latitude,
             longitude;
 
+		-- Create second patients table that follows HIPAA regulations
+		IF OBJECT_ID ('bronze.ehr_patients' , 'U') IS NOT NULL 
+			DROP TABLE bronze.ehr_patients;
+		CREATE TABLE bronze.ehr_patients
+		(
+		    px_id                 NVARCHAR(36)   NULL,
+		    birth_dt              NVARCHAR(30)   NULL,
+		    death_dt              NVARCHAR(30)   NULL,
+		    marital_status        NVARCHAR(20)   NULL,
+		    race                  NVARCHAR(50)   NULL,
+		    ethnicity             NVARCHAR(50)   NULL,
+		    gender                NVARCHAR(20)   NULL,
+		    state                 NVARCHAR(100)  NULL,
+		    healthcare_expenses   NVARCHAR(50)   NULL,
+		    healthcare_coverage   NVARCHAR(50)   NULL
+		);
         -- Transfer data into the second table
         INSERT INTO bronze.ehr_patients (
             px_id,
@@ -201,8 +218,7 @@ BEGIN
             ethnicity,
             gender,
             state,
-			county,
-            healthcare_expenses,
+		    healthcare_expenses,
             healthcare_coverage
             )
         SELECT
@@ -214,7 +230,6 @@ BEGIN
             ethnicity,
             gender,
             state,
-			county,
             TRY_CONVERT(DECIMAL(18,2), healthcare_expenses),
             TRY_CONVERT(DECIMAL(18,2), healthcare_coverage)
         FROM bronze.ehr_patients_old;
