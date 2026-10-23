@@ -17,7 +17,7 @@ Silver handles data cleaning, standardization, and validation.
 */
 
 IF OBJECT_ID ('bronze.ehr_conditions' , 'U') IS NOT NULL
-	DROP TABLE IF EXISTS bronze.ehr_conditions;
+	DROP TABLE bronze.ehr_conditions;
 CREATE TABLE bronze.ehr_conditions (
     start_dt    DATE            NULL,
     stop_dt     DATE            NULL,
@@ -29,7 +29,7 @@ CREATE TABLE bronze.ehr_conditions (
 GO
 
 IF OBJECT_ID ('bronze.ehr_encounters' , 'U') IS NOT NULL
-	DROP TABLE IF EXISTS bronze.ehr_encounters;
+	DROP TABLE bronze.ehr_encounters;
 CREATE TABLE bronze.ehr_encounters (
     encntr_id           NVARCHAR(36)    NULL,
     start_dt            DATETIME2       NULL,
@@ -50,7 +50,7 @@ CREATE TABLE bronze.ehr_encounters (
 GO
 
 IF OBJECT_ID ('bronze.ehr_medications' , 'U') IS NOT NULL
-	DROP TABLE IF EXISTS bronze.ehr_medications;
+	DROP TABLE bronze.ehr_medications;
 CREATE TABLE bronze.ehr_medications (
     start_dt        DATETIME2(0)    NULL,
     stop_dt         DATETIME2(0)    NULL,
@@ -69,7 +69,7 @@ CREATE TABLE bronze.ehr_medications (
 GO
 
 IF OBJECT_ID ('bronze.ehr_procedures' , 'U') IS NOT NULL
-	DROP TABLE IF EXISTS bronze.ehr_procedures;
+	DROP TABLE bronze.ehr_procedures;
 CREATE TABLE bronze.ehr_procedures (
     start_dt       DATETIME2(0)    NULL,
     stop_dt        DATETIME2(0)    NULL,
@@ -85,7 +85,7 @@ GO
 
 -- Create the first patients table in bronze layer
 IF OBJECT_ID ('bronze.ehr_patients_old' , 'U') IS NOT NULL
-	DROP TABLE IF EXISTS bronze.ehr_patients_old;
+	DROP TABLE bronze.ehr_patients_old;
 CREATE TABLE bronze.ehr_patients_old ( 
     px_id                 NVARCHAR(36)   NULL,
     birth_dt              NVARCHAR(30)   NULL,
@@ -117,7 +117,7 @@ GO
 
 -- Create the second patients table in bronze layer 
 IF OBJECT_ID ('bronze.ehr_patients' , 'U') IS NOT NULL 
-	DROP TABLE IF EXISTS bronze.ehr_patients;
+	DROP TABLE bronze.ehr_patients;
 CREATE TABLE bronze.ehr_patients
 (
     px_id                 NVARCHAR(36)   NULL,
@@ -135,7 +135,7 @@ GO
 
 -- Create the first providers table in bronze layer
 IF OBJECT_ID ('bronze.ehr_providers_old' , 'U') IS NOT NULL
-	DROP TABLE IF EXISTS bronze.ehr_providers_old;
+	DROP TABLE bronze.ehr_providers_old;
 CREATE TABLE bronze.ehr_providers_old ( -- Create the first provider table in bronze layer
     provider_id   NVARCHAR(36)   NULL,
     org_id        NVARCHAR(36)   NULL,
@@ -154,7 +154,7 @@ GO
 
 -- Create the second providers table in bronze layer
 IF OBJECT_ID ('bronze.ehr_providers' , 'U') IS NOT NULL 
-	DROP TABLE IF EXISTS bronze.ehr_providers;
+	DROP TABLE bronze.ehr_providers;
 CREATE TABLE bronze.ehr_providers (
     provider_id  NVARCHAR(36)  NULL,
 	org_id       NVARCHAR(36)  NULL,
@@ -165,7 +165,7 @@ CREATE TABLE bronze.ehr_providers (
 );
 
 IF OBJECT_ID ('bronze.ehr_org' , 'U') IS NOT NULL
-	DROP TABLE IF EXISTS bronze.ehr_org;
+	DROP TABLE bronze.ehr_org;
 CREATE TABLE bronze.ehr_org (
     Id          VARCHAR(36)    NULL,
     NAME        VARCHAR(200)   NULL,
@@ -182,7 +182,7 @@ CREATE TABLE bronze.ehr_org (
 GO
 
 IF OBJECT_ID ('bronze.ehr_claims' , 'U') IS NOT NULL
-	DROP TABLE IF EXISTS bronze.ehr_claims;
+	DROP TABLE bronze.ehr_claims;
 CREATE TABLE bronze.ehr_claims (
     Id                          VARCHAR(36)   NULL,
     PATIENTID                   VARCHAR(36)   NULL,
