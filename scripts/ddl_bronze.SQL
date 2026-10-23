@@ -164,4 +164,138 @@ CREATE TABLE bronze.ehr_providers (
 	utilization  INT           NULL
 );
 
+IF OBJECT_ID ('bronze.ehr_org' , 'U') IS NOT NULL
+	DROP TABLE bronze.ehr_org;
+CREATE TABLE bronze.ehr_org (
+    Id          VARCHAR(36)   NULL,
+    NAME        VARCHAR(200)  NULL,
+    ADDRESS     VARCHAR(250)  NULL,
+    CITY        VARCHAR(100)  NULL,
+    STATE       VARCHAR(2)    NULL,
+    ZIP         VARCHAR(10)   NULL,
+    LAT         DECIMAL(9,6)  NULL,
+    LON         DECIMAL(9,6)  NULL,
+    PHONE       VARCHAR(25)   NULL,
+    REVENUE     DECIMAL(18,2) NULL,
+    UTILIZATION BIGINT        NULL
+);
+GO
 
+IF OBJECT_ID ('bronze.ehr_claims' , 'U') IS NOT NULL
+	DROP TABLE bronze.ehr_claims;
+CREATE TABLE bronze.ehr_claims (
+    Id                          VARCHAR(36)    NULL,
+    PATIENTID                   VARCHAR(36)    NULL,
+    PROVIDERID                  VARCHAR(36)    NULL,
+    PRIMARYPATIENTINSURANCEID   VARCHAR(36)    NULL,
+    SECONDARYPATIENTINSURANCEID VARCHAR(36)    NULL,
+    DEPARTMENTID                VARCHAR(36)    NULL,
+    PATIENTDEPARTMENTID         VARCHAR(36)    NULL,
+    DIAGNOSIS1                  VARCHAR(36)    NULL,
+    DIAGNOSIS2                  VARCHAR(36)    NULL,
+    DIAGNOSIS3                  VARCHAR(36)    NULL,
+    DIAGNOSIS4                  VARCHAR(36)    NULL,
+    DIAGNOSIS5                  VARCHAR(36)    NULL,
+    DIAGNOSIS6                  VARCHAR(36)    NULL,
+    DIAGNOSIS7                  VARCHAR(36)    NULL,
+    DIAGNOSIS8                  VARCHAR(36)    NULL,
+    DIAGNOSIS9                  VARCHAR(36)    NULL,
+    DIAGNOSIS10                 VARCHAR(36)    NULL,
+    REFERRINGPROVIDERID         VARCHAR(36)    NULL,
+    APPOINTMENTID               VARCHAR(36)    NULL,
+    CURRENTILLNESSDATE          DATE           NULL,
+    SERVICEDATE                 DATE           NULL,
+    SUPERVISINGPROVIDERID       VARCHAR(36)    NULL,
+    STATUS1                     VARCHAR(20)    NULL,
+    STATUS2                     VARCHAR(20)    NULL,
+    STATUSP                     VARCHAR(20)    NULL,
+    OUTSTANDING1                DECIMAL(18,2)  NULL,
+    OUTSTANDING2                DECIMAL(18,2)  NULL,
+    OUTSTANDINGP                DECIMAL(18,2)  NULL,
+    LASTBILLEDDATE1             DATE           NULL,
+    LASTBILLEDDATE2             DATE           NULL,
+    LASTBILLEDDATEP             DATE           NULL,
+    HEALTHCARECLAIMTYPEID1      INT            NULL,
+    HEALTHCARECLAIMTYPEID2      INT            NULL
+);
+GO
+
+IF OBJECT_ID ('bronze.ehr_claims_transaction' , 'U') IS NOT NULL
+	DROP TABLE bronze.ehr_claims_transaction;
+CREATE TABLE bronze.ehr_claims_transaction (
+    ID                    VARCHAR(36)    NULL,
+    CLAIMID               VARCHAR(36)    NULL,
+    CHARGEID              VARCHAR(36)    NULL,
+    PATIENTID             VARCHAR(36)    NULL,
+    [TYPE]                VARCHAR(20)    NULL,
+    AMOUNT                DECIMAL(18,2)  NULL,
+    METHOD                VARCHAR(50)    NULL,
+    FROMDATE              DATETIME2(0)   NULL,
+    TODATE                DATETIME2(0)   NULL,
+    PLACEOFSERVICE        VARCHAR(100)   NULL,
+    PROCEDURECODE         VARCHAR(20)    NULL,
+    MODIFIER1             VARCHAR(20)    NULL,
+    MODIFIER2             VARCHAR(20)    NULL,
+    DIAGNOSISREF1         VARCHAR(36)    NULL,
+    DIAGNOSISREF2         VARCHAR(36)    NULL,
+    DIAGNOSISREF3         VARCHAR(36)    NULL,
+    DIAGNOSISREF4         VARCHAR(36)    NULL,
+    UNITS                 DECIMAL(10,2)  NULL,
+    DEPARTMENTID          VARCHAR(36)    NULL,
+    NOTES                 VARCHAR(1000)  NULL,
+    UNITAMOUNT            DECIMAL(18,2)  NULL,
+    TRANSFEROUTID         VARCHAR(36)    NULL,
+    TRANSFERTYPE          VARCHAR(30)    NULL,
+    PAYMENTS              DECIMAL(18,2)  NULL,
+    ADJUSTMENTS            DECIMAL(18,2)  NULL,
+    TRANSFERS             DECIMAL(18,2)  NULL,
+    OUTSTANDING           DECIMAL(18,2)  NULL,
+    APPOINTMENTID         VARCHAR(36)    NULL,
+    LINENOTE              VARCHAR(500)   NULL,
+    PATIENTINSURANCEID    VARCHAR(36)    NULL,
+    FEESCHEDULEID         VARCHAR(36)    NULL,
+    PROVIDERID            VARCHAR(36)    NULL,
+    SUPERVISINGPROVIDERID VARCHAR(36)    NULL
+);
+GO
+
+IF OBJECT_ID ('bronze.ehr_payer_transitions' , 'U') IS NOT NULL
+	DROP TABLE bronze.ehr_payer_transitions;
+CREATE TABLE bronze.ehr_payer_transitions (
+    PATIENT         VARCHAR(36)  NULL,
+    MEMBERID        VARCHAR(36)  NULL,
+    START_YEAR      DATE         NULL,
+    END_YEAR        DATE         NULL,
+    PAYER           VARCHAR(36)  NULL,
+    SECONDARY_PAYER VARCHAR(36)  NULL,
+    OWNERSHIP       VARCHAR(50)  NULL,
+    OWNERNAME       VARCHAR(200) NULL
+);
+GO
+
+IF OBJECT_ID ('bronze.ehr_payers' , 'U') IS NOT NULL
+	DROP TABLE bronze.ehr_payers;
+CREATE TABLE bronze.ehr_payers (
+    Id                       VARCHAR(36)    NULL,
+    NAME                     VARCHAR(200)   NULL,
+    ADDRESS                  VARCHAR(250)   NULL,
+    CITY                     VARCHAR(100)   NULL,
+    STATE_HEADQUARTERED      VARCHAR(2)     NULL,
+    ZIP                      VARCHAR(10)    NULL,
+    PHONE                    VARCHAR(25)    NULL,
+    AMOUNT_COVERED           DECIMAL(18,2)  NULL,
+    AMOUNT_UNCOVERED         DECIMAL(18,2)  NULL,
+    REVENUE                  DECIMAL(18,2)  NULL,
+    COVERED_ENCOUNTERS       BIGINT         NULL,
+    UNCOVERED_ENCOUNTERS     BIGINT         NULL,
+    COVERED_MEDICATIONS      BIGINT         NULL,
+    UNCOVERED_MEDICATIONS    BIGINT         NULL,
+    COVERED_PROCEDURES       BIGINT         NULL,
+    UNCOVERED_PROCEDURES     BIGINT         NULL,
+    COVERED_IMMUNIZATIONS    BIGINT         NULL,
+    UNCOVERED_IMMUNIZATIONS  BIGINT         NULL,
+    UNIQUE_CUSTOMERS         BIGINT         NULL,
+    QOLS_AVG                 DECIMAL(12,6)  NULL,
+    MEMBER_MONTHS            BIGINT         NULL
+);
+GO
