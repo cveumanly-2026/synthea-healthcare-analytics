@@ -82,7 +82,7 @@ SELECT
     state,
     healthcare_expenses,
     healthcare_coverage   
-FROM bronze.ehr_patients;
+FROM bronze.ehr_patients
 
 -- =====================================================================
 -- 2. TRANSFORMING 'bronze.ehr_providers'
@@ -144,7 +144,7 @@ FROM bronze.ehr_providers
 -- =====================================================================
 
 -- Inspect the raw patient conditions from bronze.ehr_conditions
-SELECT TOP *
+SELECT TOP 1000 *
 FROM bronze.ehr_conditions;
 
 -- Test candidate composite primary key
@@ -504,4 +504,3 @@ FROM (SELECT DISTINCT *
     FROM bronze.ehr_procedures
     WHERE px_id IS NOT NULL
 ) AS t;
-
