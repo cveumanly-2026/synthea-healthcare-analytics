@@ -74,11 +74,15 @@ SELECT
     END AS marital_status,
     race,
     ethnicity,
-    gender,
+    CASE WHEN gender = 'M' THEN 'Male'
+         WHEN gender ='F' THEN 'Female'
+         WHEN gender IS NULL THEN 'N/A'
+         ELSE gender
+    END AS gender,
     state,
     healthcare_expenses,
     healthcare_coverage   
-FROM bronze.ehr_patients
+FROM bronze.ehr_patients;
 
 -- =====================================================================
 -- 2. TRANSFORMING 'bronze.ehr_providers'
