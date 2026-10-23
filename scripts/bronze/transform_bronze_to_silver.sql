@@ -6,7 +6,7 @@
 SELECT TOP 1000 *
 FROM bronze.ehr_patients;
 
--- Investigate NULLs or duplicate customer IDs
+-- Investigate NULLs or duplicate patient IDs
 -- Expected Results: No Results
 SELECT
     px_id,
