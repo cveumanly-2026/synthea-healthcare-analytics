@@ -129,7 +129,7 @@ BEGIN
         SET @start_time = GETDATE();
 		-- Create first patients table to load the original csv data
         IF OBJECT_ID ('bronze.ehr_patients_old' , 'U') IS NOT NULL
-			DROP TABLE bronze.ehr_patients_old;
+			DROP TABLE IF EXISTS bronze.ehr_patients_old;
 		CREATE TABLE bronze.ehr_patients_old ( 
 		    px_id                 NVARCHAR(36)   NULL,
 		    birth_dt              NVARCHAR(30)   NULL,
@@ -194,7 +194,7 @@ BEGIN
 
 		-- Create second patients table that follows HIPAA regulations
 		IF OBJECT_ID ('bronze.ehr_patients' , 'U') IS NOT NULL 
-			DROP TABLE bronze.ehr_patients;
+			DROP TABLE IF EXISTS bronze.ehr_patients;
 		CREATE TABLE bronze.ehr_patients
 		(
 		    px_id                 NVARCHAR(36)   NULL,
@@ -239,7 +239,7 @@ BEGIN
 		-- 6. bronze.ehr_providers_old Table Processing
 		SET @start_time = GETDATE();
 		IF OBJECT_ID ('bronze.ehr_providers_old' , 'U') IS NOT NULL
-		    DROP TABLE bronze.ehr_providers_old;
+		    DROP TABLE IF EXISTS bronze.ehr_providers_old;
 		CREATE TABLE bronze.ehr_providers_old ( -- Create the first provider table in bronze layer
 		    provider_id   NVARCHAR(36)   NULL,
 		    org_id        NVARCHAR(36)   NULL,
