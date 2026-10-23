@@ -218,9 +218,9 @@ CREATE TABLE bronze.ehr_claims (
 );
 GO
 
-IF OBJECT_ID ('bronze.ehr_claims_transaction' , 'U') IS NOT NULL
-	DROP TABLE bronze.ehr_claims_transaction;
-CREATE TABLE bronze.ehr_claims_transaction (
+IF OBJECT_ID ('bronze.ehr_claims_trans' , 'U') IS NOT NULL
+	DROP TABLE bronze.ehr_claims_trans;
+CREATE TABLE bronze.ehr_claims_trans (
     ID                    VARCHAR(36)    NULL,
     CLAIMID               VARCHAR(36)    NULL,
     CHARGEID              VARCHAR(36)    NULL,
@@ -257,9 +257,9 @@ CREATE TABLE bronze.ehr_claims_transaction (
 );
 GO
 
-IF OBJECT_ID ('bronze.ehr_payer_transitions' , 'U') IS NOT NULL
-	DROP TABLE bronze.ehr_payer_transitions;
-CREATE TABLE bronze.ehr_payer_transitions (
+IF OBJECT_ID ('bronze.ehr_payer_trans' , 'U') IS NOT NULL
+	DROP TABLE bronze.ehr_payer_trans;
+CREATE TABLE bronze.ehr_payer_trans (
     PATIENT         VARCHAR(36)  NULL,
     MEMBERID        VARCHAR(36)  NULL,
     START_YEAR      DATE         NULL,
