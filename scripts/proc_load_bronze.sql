@@ -299,6 +299,103 @@ BEGIN
 		FROM bronze.ehr_providers_old;
 		SET @end_time = GETDATE();
 		PRINT '>> Load Duration: ' + CAST(DATEDIFF(second, @start_time, @end_time) AS NVARCHAR(10))
+
+		-- 7. bronze.ehr_org Table Processing
+		SET @start_time = GETDATE();
+		PRINT '>> Truncating Table: bronze.ehr_org'; 
+		TRUNCATE TABLE bronze.ehr_org;
+		
+		PRINT '>> Inserting Data Into: bronze.ehr_org';
+		BULK INSERT bronze.ehr_org
+		FROM 'C:\SyntheaTM\EHR\organizations.csv'
+		WITH
+		(
+		    FORMAT = 'CSV',
+		    FIRSTROW = 2,
+		    FIELDTERMINATOR = ',',
+		    FIELDQUOTE = '"',
+		    ROWTERMINATOR = '0x0a',
+		    CODEPAGE = '65001',
+		    TABLOCK
+		);
+		SET @end_time = GETDATE();
+		PRINT '>> Load Duration: ' + CAST(DATEDIFF(second, @start_time, @end_time) AS NVARCHAR(10))
+
+		-- 8. bronze.ehr_claims Table Processing 
+		SET @start_time = GETDATE();
+		PRINT '>> Truncating Table: bronze.ehr_claims'; 
+		TRUNCATE TABLE bronze.ehr_claims;
+		
+		PRINT '>> Inserting Data Into: bronze.ehr_claims';
+		BULK INSERT bronze.ehr_claims
+		FROM 'C:\SyntheaTM\EHR\claims.csv'
+		WITH (
+		    DATAFILETYPE = 'char',
+		    FIELDTERMINATOR = ',',
+		    ROWTERMINATOR = '0x0a',
+		    FIRSTROW = 2,
+		    CODEPAGE = '65001',
+		    TABLOCK
+		);
+		SET @end_time = GETDATE();
+		PRINT '>> Load Duration: ' + CAST(DATEDIFF(second, @start_time, @end_time) AS NVARCHAR(10))
+
+		-- 9. bronze.ehr_claims_trans Table Processing 
+		SET @start_time = GETDATE();
+		PRINT '>> Truncating Table: bronze.ehr_claims_trans'; 
+		TRUNCATE TABLE bronze.ehr_claims_trans;
+		
+		PRINT '>> Inserting Data Into: bronze.ehr_claims_trans';
+		BULK INSERT bronze.ehr_claims_trans
+		FROM 'C:\SyntheaTM\EHR\claims_transactions.csv'
+		WITH (
+		    DATAFILETYPE = 'char',
+		    FIELDTERMINATOR = ',',
+		    ROWTERMINATOR = '0x0a',
+		    FIRSTROW = 2,
+		    CODEPAGE = '65001',
+		    TABLOCK
+		);
+		SET @end_time = GETDATE();
+		PRINT '>> Load Duration: ' + CAST(DATEDIFF(second, @start_time, @end_time) AS NVARCHAR(10))
+
+		-- 10. bronze.ehr_payer_trans Table Processing 
+		SET @start_time = GETDATE();
+		PRINT '>> Truncating Table: bronze.ehr_payer_trans'; 
+		TRUNCATE TABLE bronze.ehr_payer_trans;
+				
+		PRINT '>> Inserting Data Into: bronze.ehr_payer_trans';
+		BULK INSERT bronze.ehr_payer_trans
+		FROM 'C:\SyntheaTM\EHR\payer_transitions.csv'
+		WITH (
+			DATAFILETYPE = 'char',
+			FIELDTERMINATOR = ',',
+			ROWTERMINATOR = '0x0a',
+			FIRSTROW = 2,
+			CODEPAGE = '65001',
+			TABLOCK
+		);
+		SET @end_time = GETDATE();
+		PRINT '>> Load Duration: ' + CAST(DATEDIFF(second, @start_time, @end_time) AS NVARCHAR(10))
+	
+		-- 11. bronze.ehr_payers Table Processing 
+		SET @start_time = GETDATE();
+		PRINT '>> Truncating Table: bronze.ehr_payers'; 
+		TRUNCATE TABLE bronze.ehr_payers;
+				
+		PRINT '>> Inserting Data Into: bronze.ehr_payers';
+		BULK INSERT bronze.ehr_payers
+		FROM 'C:\SyntheaTM\EHR\payers.csv'
+		WITH (
+			DATAFILETYPE = 'char',
+			FIELDTERMINATOR = ',',
+			ROWTERMINATOR = '0x0a',
+			FIRSTROW = 2,
+			CODEPAGE = '65001',
+			TABLOCK
+		);
+		SET @end_time = GETDATE();
+		PRINT '>> Load Duration: ' + CAST(DATEDIFF(second, @start_time, @end_time) AS NVARCHAR(10))
         PRINT '>> -------------';
 
         -- Calculate absolute batch end runtime metrics
