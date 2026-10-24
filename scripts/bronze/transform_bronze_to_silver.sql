@@ -502,3 +502,134 @@ FROM (SELECT DISTINCT *
     FROM bronze.ehr_procedures
     WHERE px_id IS NOT NULL
 ) AS t;
+
+
+-- =====================================================================
+-- 7. TRANSFORMING 'bronze.ehr_org'
+-- =====================================================================
+
+-- Inspect the source data from bronze.ehr_org
+SELECT TOP 100 *
+FROM bronze.ehr_org;
+
+-- Count source records
+SELECT COUNT(*) AS total_source_rows
+FROM bronze.ehr_org;
+
+-- Checking for NULLs and duplicate organization IDs
+-- Expected Results: No Results
+SELECT
+    Id,
+    COUNT(*) AS record_count
+FROM bronze.ehr_org
+GROUP BY Id
+HAVING COUNT(*) > 1 OR Id IS NULL; 
+
+-- Check for missing required values in other columns.
+-- Expected Results: No Results
+SELECT *
+FROM bronze.ehr_org
+WHERE NAME IS NULL
+    OR CITY IS NULL
+    OR STATE IS NULL
+    OR REVENUE IS NULL
+    OR UTILIZATION IS NULL;
+
+-- Check for unwanted spaces
+-- Expected Results: No Results
+SELECT *
+FROM bronze.ehr_org
+WHERE Id != TRIM(Id)
+    OR NAME    != TRIM(NAME)
+    OR ADDRESS != TRIM(ADDRESS)
+    OR CITY    != TRIM(CITY)
+    OR STATE   != TRIM(STATE)
+    OR ZIP     != TRIM(ZIP)
+    OR PHONE   != TRIM(PHONE)
+
+-- Check for duplicate organization names and addresses
+-- Expected Results: No Results
+SELECT
+    NAME,
+    ADDRESS,
+    CITY,
+    STATE,
+    COUNT(*) AS duplicate_count
+FROM bronze.ehr_org
+GROUP BY
+    NAME,
+    ADDRESS,
+    CITY,
+    STATE
+HAVING COUNT(*) > 1;
+
+-- Identify organization IDs with duplicate names and addresses
+-- Expected Results: Only potential duplicate records
+WITH duplicate_org AS (
+    SELECT
+        Id,
+        NAME,
+        ADDRESS,
+        CITY,
+        STATE,
+        COUNT(*) OVER (PARTITION BY NAME, ADDRESS, CITY, STATE) AS duplicate_count
+    FROM bronze.ehr_org
+)
+SELECT *
+FROM duplicate_org
+WHERE duplicate_count > 1
+ORDER BY NAME, ADDRESS, CITY, STATE, Id;
+
+-- Investigate potential duplicate organizations
+-- Compare additional attributes before deciding on deduplication
+-- The same name, address, city, state, zip but different ID but 
+WITH duplicate_org AS (
+    SELECT
+        *,
+        COUNT(*) OVER (PARTITION BY NAME, ADDRESS, CITY, STATE) AS duplicate_count
+    FROM bronze.ehr_org
+)
+SELECT
+    Id,
+    NAME,
+    ADDRESS,
+    CITY,
+    STATE,
+    ZIP,
+    PHONE, -- There's NULL
+    REVENUE,
+    UTILIZATION,
+    duplicate_count
+FROM duplicate_org
+WHERE duplicate_count > 1
+ORDER BY NAME, ADDRESS, Id;
+
+-- Check organizations without matching providers
+-- Relationship: Organizations → Providers
+-- Expected Results: No Results
+SELECT *
+FROM bronze.ehr_org o
+WHERE NOT EXISTS (
+    SELECT 1
+    FROM bronze.ehr_providers p
+    WHERE p.org_id = o.Id
+);
+
+-- Check for invalid organization references in providers
+-- Relationship: Providers → Organizations 
+-- Expected Results: No Results
+SELECT *
+FROM bronze.ehr_providers p
+WHERE p.org_id IS NOT NULL
+    AND NOT EXISTS (
+        SELECT 1
+        FROM bronze.ehr_org o
+        WHERE o.Id = p.org_id
+    );
+
+-- Check for negative revenue and utilization
+-- Expected Results: No Results
+SELECT *
+FROM bronze.ehr_org
+WHERE REVENUE < 0
+   OR UTILIZATION < 0;
