@@ -181,8 +181,10 @@ CREATE TABLE bronze.ehr_org (
 );
 GO
 
+IF OBJECT_ID ('bronze.ehr_observations' , 'U') IS NOT NULL
+	DROP TABLE bronze.ehr_observations;
 CREATE TABLE bronze.ehr_observations (
-    [DATE]      VARCHAR(30)    NULL,
+    [DATE]      DATETIME2(0)   NULL,
     PATIENT     VARCHAR(36)    NULL,
     ENCOUNTER   VARCHAR(36)    NULL,
     CATEGORY    VARCHAR(50)    NULL,
@@ -192,6 +194,7 @@ CREATE TABLE bronze.ehr_observations (
     UNITS       VARCHAR(100)   NULL,
     [TYPE]      VARCHAR(30)    NULL
 );
+GO
 
 IF OBJECT_ID ('bronze.ehr_claims' , 'U') IS NOT NULL
 	DROP TABLE bronze.ehr_claims;
