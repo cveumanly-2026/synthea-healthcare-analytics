@@ -181,6 +181,18 @@ CREATE TABLE bronze.ehr_org (
 );
 GO
 
+CREATE TABLE bronze.ehr_observations (
+    [DATE]      VARCHAR(30)    NULL,
+    PATIENT     VARCHAR(36)    NULL,
+    ENCOUNTER   VARCHAR(36)    NULL,
+    CATEGORY    VARCHAR(50)    NULL,
+    CODE        VARCHAR(50)    NULL,
+    DESCRIPTION VARCHAR(500)   NULL,
+    VALUE       VARCHAR(500)   NULL,
+    UNITS       VARCHAR(100)   NULL,
+    [TYPE]      VARCHAR(30)    NULL
+);
+
 IF OBJECT_ID ('bronze.ehr_claims' , 'U') IS NOT NULL
 	DROP TABLE bronze.ehr_claims;
 CREATE TABLE bronze.ehr_claims (
