@@ -377,8 +377,27 @@ BEGIN
 		);
 		SET @end_time = GETDATE();
 		PRINT '>> Load Duration: ' + CAST(DATEDIFF(second, @start_time, @end_time) AS NVARCHAR(10))
-	
-		-- 11. bronze.ehr_payers Table Processing 
+
+		-- 11. bronze.ehr_observations Table Processing 
+		SET @start_time = GETDATE();
+		PRINT '>> Truncating Table: bronze.ehr_observations'; 
+		TRUNCATE TABLE bronze.ehr_observations;
+						
+		PRINT '>> Inserting Data Into: bronze.ehr_observations';
+		BULK INSERT bronze.ehr_observations
+		FROM 'C:\SyntheaTM\EHR\observations.csv'
+		WITH (
+			DATAFILETYPE = 'char',
+			FIELDTERMINATOR = ',',
+			ROWTERMINATOR = '0x0a',
+			FIRSTROW = 2,
+			CODEPAGE = '65001',
+			TABLOCK
+		);
+		SET @end_time = GETDATE();
+		PRINT '>> Load Duration: ' + CAST(DATEDIFF(second, @start_time, @end_time) AS NVARCHAR(10))
+			
+		-- 12. bronze.ehr_payers Table Processing 
 		SET @start_time = GETDATE();
 		PRINT '>> Truncating Table: bronze.ehr_payers'; 
 		TRUNCATE TABLE bronze.ehr_payers;
