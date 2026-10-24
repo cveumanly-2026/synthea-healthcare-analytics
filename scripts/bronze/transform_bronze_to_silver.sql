@@ -127,15 +127,13 @@ FROM bronze.ehr_providers;
 
 -- Preview standardized patient attributes prior insert to silver.ehr_patients
 -- F -> Female; M -> Male
--- MA -> Massachusetts
 SELECT 
     provider_id,
     org_id,
     CASE gender WHEN 'F' THEN 'Female' WHEN 'M' THEN 'Male' ELSE gender 
     END AS gender,
     specialty,
-    CASE WHEN state = 'MA' THEN 'Massachusetts' ELSE state 
-    END AS state,
+    state,
     utilization
 FROM bronze.ehr_providers
 
