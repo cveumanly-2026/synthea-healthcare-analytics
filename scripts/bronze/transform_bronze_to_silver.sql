@@ -633,3 +633,558 @@ SELECT *
 FROM bronze.ehr_org
 WHERE REVENUE < 0
    OR UTILIZATION < 0;
+
+-- =====================================================================
+-- 8. TRANSFORMING 'bronze.ehr_observations'
+-- =====================================================================
+
+-- Inspect the source data from bronze.ehr_observations
+SELECT TOP 100 *
+FROM bronze.ehr_observations;
+
+-- Count source records
+-- Total: 531144
+SELECT COUNT(*) AS total_source_rows
+FROM bronze.ehr_observations;
+
+-- Investigate exact duplicate observation records
+-- Expected Results: No Results (if no exact duplicates exist)
+SELECT
+    [DATE],
+    PATIENT,
+    ENCOUNTER,
+    CATEGORY,
+    CODE,
+    DESCRIPTION,
+    VALUE,
+    UNITS,
+    [TYPE],
+    COUNT(*) AS duplicate_count
+FROM bronze.ehr_observations
+GROUP BY
+    [DATE],
+    PATIENT,
+    ENCOUNTER,
+    CATEGORY,
+    CODE,
+    DESCRIPTION,
+    VALUE,
+    UNITS,
+    [TYPE]
+HAVING COUNT(*) > 1;
+
+-- Investigate exact duplicate observation records
+-- Display duplicated records for further assessment
+WITH CTE_duplicate_observations AS
+(
+    SELECT
+        *,
+        COUNT(*) OVER (PARTITION BY [DATE], PATIENT, ENCOUNTER, CATEGORY, CODE, DESCRIPTION, VALUE, UNITS, [TYPE]) AS duplicate_count
+    FROM bronze.ehr_observations
+)
+SELECT *
+FROM CTE_duplicate_observations
+WHERE duplicate_count > 1
+ORDER BY PATIENT, ENCOUNTER, [DATE]; -- Results: Presence of duplicate_count > 1
+
+-- Investigate duplicate records by CATEGORY
+WITH CTE_duplicate_observations AS
+(
+    SELECT
+        CATEGORY,
+        [DATE],
+        PATIENT,
+        ENCOUNTER,
+        CODE,
+        DESCRIPTION,
+        VALUE,
+        UNITS,
+        [TYPE],
+        COUNT(*) AS duplicate_count
+    FROM bronze.ehr_observations
+    GROUP BY
+        CATEGORY,
+        [DATE],
+        PATIENT,
+        ENCOUNTER,
+        CODE,
+        DESCRIPTION,
+        VALUE,
+        UNITS,
+        [TYPE]
+    HAVING COUNT(*) > 1
+)
+SELECT
+    CATEGORY,
+    COUNT(*) AS duplicate_groups,
+    SUM(duplicate_count) AS total_records,
+    SUM(duplicate_count - 1) AS potential_excess_records
+FROM CTE_duplicate_observations
+GROUP BY CATEGORY
+ORDER BY duplicate_groups DESC;
+-- Results:
+-- 249 exact duplicate groups (498 records) were identified across two categories.
+-- Laboratory accounted for 247 duplicate groups (494 records).
+-- Vital-signs accounted for 2 duplicate groups (4 records).
+-- No exact duplicates were found in other categories.
+-- Deduplication is pending source verification before Silver transformation.
+
+-- Investigate unwanted spaces in each column
+-- Expected Results: No Results
+-- Investigate unwanted spaces in each column
+-- Expected Results: No Results
+SELECT *
+FROM bronze.ehr_observations
+WHERE
+    (PATIENT IS NOT NULL AND DATALENGTH(PATIENT) != DATALENGTH(TRIM(PATIENT)))
+    OR (ENCOUNTER IS NOT NULL AND DATALENGTH(ENCOUNTER) != DATALENGTH(TRIM(ENCOUNTER)))
+    OR (CATEGORY IS NOT NULL AND DATALENGTH(CATEGORY) != DATALENGTH(TRIM(CATEGORY)))
+    OR (CODE IS NOT NULL AND DATALENGTH(CODE) != DATALENGTH(TRIM(CODE)))
+    OR (DESCRIPTION IS NOT NULL AND DATALENGTH(DESCRIPTION) != DATALENGTH(TRIM(DESCRIPTION)))
+    OR (VALUE IS NOT NULL AND DATALENGTH(VALUE) != DATALENGTH(TRIM(VALUE)))
+    OR (UNITS IS NOT NULL AND DATALENGTH(UNITS) != DATALENGTH(TRIM(UNITS)))
+    OR ([TYPE] IS NOT NULL AND DATALENGTH([TYPE]) != DATALENGTH(TRIM([TYPE])));
+
+-- Investigate NULL values in important observation attributes
+-- Expected Results: Review the results
+SELECT *
+FROM bronze.ehr_observations
+WHERE DATE IS NULL
+    OR PATIENT IS NULL
+    OR ENCOUNTER IS NULL;
+-- Results:
+-- 31,662 records (5.96%) had both ENCOUNTER and CATEGORY values missing.
+-- No records had only one of these attributes missing.
+-- The remaining 499,482 records had both attributes populated.
+-- Both NULL values will be preserved pending further investigation.
+
+-- Analyze NULL combinations in ENCOUNTER and CATEGORY
+SELECT
+    COUNT(*) AS total_records,
+    SUM(CASE WHEN ENCOUNTER IS NULL THEN 1 ELSE 0
+    END) AS null_encounter,
+    SUM(CASE WHEN CATEGORY IS NULL THEN 1 ELSE 0
+    END) AS null_category,
+    SUM(CASE WHEN ENCOUNTER IS NULL AND CATEGORY IS NULL THEN 1 ELSE 0
+    END) AS null_both,
+    SUM(CASE WHEN ENCOUNTER IS NULL AND CATEGORY IS NOT NULL THEN 1 ELSE 0
+    END) AS null_encounter_only,
+    SUM(CASE WHEN ENCOUNTER IS NOT NULL AND CATEGORY IS NULL THEN 1 ELSE 0
+    END) AS null_category_only
+FROM bronze.ehr_observations;
+-- Results:
+-- A total of 31,662 records (5.96%) were identified with both ENCOUNTER and CATEGORY values missing.
+-- No records were found with only one of these two attributes missing.
+-- The remaining 499,482 records contained populated ENCOUNTER and CATEGORY values.
+-- Both NULL attributes will be preserved pending further investigation of their observation codes and clinical relevance.
+
+-- Investigate observations with NULL ENCOUNTER and CATEGORY
+SELECT
+    CODE,
+    DESCRIPTION,
+    [TYPE],
+    UNITS,
+    COUNT(*) AS total_records,
+    COUNT(DISTINCT PATIENT) AS total_patients
+FROM bronze.ehr_observations
+WHERE ENCOUNTER IS NULL AND CATEGORY IS NULL
+GROUP BY
+    CODE,
+    DESCRIPTION,
+    [TYPE],
+    UNITS
+ORDER BY total_records DESC;
+-- Results:
+-- Total affected records: 31,662 (5.96%).
+-- Affected columns: ENCOUNTER and CATEGORY.
+-- Identified codes: QOLS, QALY, and DALY.
+-- Each code contains 10,554 records and 1,049 unique patients.
+
+-- Check if PATIENT does not exist in bronze.ehr_patients
+-- Expected Results: 0
+SELECT COUNT(*) AS invalid_patient_records
+FROM bronze.ehr_observations o
+LEFT JOIN bronze.ehr_patients p
+ON o.patient = p.px_id
+WHERE o.patient is not null
+    and p.px_id is null;
+-- Results: 
+-- No invalid PATIENT references were identified in the Observation dataset.
+-- All non-NULL PATIENT identifiers matched existing records in bronze.ehr_patients.
+-- The referential integrity check passed.
+-- No patient reference correction is required.
+
+-- Check if ENCOUNTER does not exist in bronze.ehr_encounters
+-- Expected Results: 0
+SELECT COUNT(*) AS invalid_encounter_records
+FROM bronze.ehr_observations o
+LEFT JOIN bronze.ehr_encounters e
+ON o.ENCOUNTER = e.encntr_id
+WHERE o.ENCOUNTER IS NOT NULL AND e.encntr_id IS NULL;
+
+-- Check patient and encounter relationship
+-- Expected Results: 0
+SELECT COUNT(*) AS mismatched_patient_encounters
+FROM bronze.ehr_observations o
+INNER JOIN bronze.ehr_encounters e
+ON o.ENCOUNTER = e.encntr_id
+WHERE o.PATIENT IS NOT NULL
+    AND o.ENCOUNTER IS NOT NULL
+    AND o.PATIENT != e.px_id;
+
+-- Investigate invalid observation dates
+-- Expected Results: 0
+SELECT COUNT(*) as invalid_observation_dates
+FROM bronze.ehr_observations
+WHERE [DATE] < '1900-01-01'
+    or [DATE] > GETDATE();
+
+-- investigate observation dates against encounter dates
+-- expected results: 0
+SELECT COUNT(*) AS invalid_encounter_date_records
+FROM bronze.ehr_observations o
+INNER JOIN bronze.ehr_encounters e
+ON o.encounter = e.encntr_id
+WHERE (e.start_dt IS NOT NULL AND o.DATE < e.start_dt)
+    OR (e.stop_dt IS NOT NULL AND o.DATE > e.stop_dt); -- Results: 221483
+
+-- investigate observation and encounter date discrepancies
+SELECT 
+    COUNT(*) AS total_observations,
+    SUM(CASE WHEN o.[DATE] < e.start_dt THEN 1 ELSE 0
+    END) AS before_encounter_start,
+    SUM(CASE WHEN e.stop_dt IS NOT NULL AND o.[DATE] > e.stop_dt THEN 1 ELSE 0
+    END) AS after_encounter_start,
+    SUM(CASE WHEN e.stop_dt IS NULL THEN 1 ELSE 0 
+    END) AS null_encounter_end,
+    SUM(CASE WHEN o.[DATE] >= e.start_dt AND (e.stop_dt IS NULL OR o.[DATE] <= e.stop_dt) 
+    THEN 1 ELSE 0
+    END) AS within_encounter_period
+FROM bronze.ehr_observations o
+INNER JOIN bronze.ehr_encounters e
+ON o.ENCOUNTER = e.encntr_id
+WHERE o.[DATE] IS NOT NULL;
+-- Results: 
+-- total_observations = 499482
+-- before_encounter_start = 8472
+-- after_encounter_start = 213011
+-- null_encounter_end = 0
+-- within_encounter_period = 277999
+
+-- investigate observations after encounter end
+SELECT 
+    o.PATIENT,
+    o.ENCOUNTER,
+    o.[DATE] AS observation_date,
+    e.start_dt AS encounter_start,
+    e.stop_dt AS encounter_end,
+    o.CATEGORY,
+    o.CODE,
+    o.[DESCRIPTION]
+FROM bronze.ehr_observations o
+INNER JOIN bronze.ehr_encounters e
+ON o.ENCOUNTER = e.encntr_id
+WHERE e.stop_dt IS NOT NULL AND o.[DATE] > e.stop_dt
+ORDER BY o.[DATE];
+-- Results: observation_date, encounter_start, encounter_end : YEAR 1934 sd/ 2021 
+
+-- investigate observation date range
+SELECT
+    MIN([date]) as earliest_observation,
+    MAX([date]) as latest_observation,
+    COUNT(*) as total_records,
+    SUM(CASE WHEN YEAR([DATE]) < 2000 THEN 1 ELSE 0
+    END) AS records_before_2000,
+    SUM(CASE WHEN YEAR([DATE]) >= 2000 THEN 1 ELSE 0
+    END) AS records_from_2000
+FROM bronze.ehr_observations;
+-- Results: 
+-- Total_records = 531144
+-- Records before year 2000 = 53589 (10.09%)
+-- Records after year 2000 = 477555 (89.91%)
+-- Earliest_observation = 1932-06-21
+-- Latest_observation = 2021-11-19
+
+-- investigate observation records by year
+SELECT 
+    YEAR([DATE]) AS observation_year,
+    COUNT(*) AS total_records,
+    COUNT (DISTINCT PATIENT) AS total_patients
+FROM bronze.ehr_observations
+WHERE YEAR([DATE]) < 2000
+GROUP BY YEAR([DATE]) 
+ORDER BY YEAR([DATE]);
+-- Results: 
+-- The number of records increases gradually over the years.
+-- In 1932, there were only 11 records from 1 patient.
+-- In 1999, there were 2,474 records from 36 patients.
+-- This pattern shows that pre-2000 data is spread across multiple patients, rather than being caused by a single isolated date error.
+
+-- investigate observation dates before patient birth dates
+SELECT 
+    o.PATIENT,
+    p.birth_dt,
+    o.[DATE] AS observation_date,
+    o.CODE,
+    o.DESCRIPTION
+FROM bronze.ehr_observations o
+INNER JOIN bronze.ehr_patients p
+ON o.PATIENT = p.px_id
+WHERE o.[DATE] < p.birth_dt
+ORDER BY o.[DATE]; 
+-- Results: 
+-- No observation records were found with dates earlier than patient birth dates.
+-- All observation dates were chronologically consistent with patient birth dates.
+-- No date correction is required.
+
+-- investigate observation dates after encounter end by category
+SELECT 
+    o.CATEGORY,
+    COUNT(*) AS total_records
+FROM bronze.ehr_observations o
+INNER JOIN bronze.ehr_encounters e
+ON o.ENCOUNTER = e.encntr_id
+WHERE e.stop_dt IS NOT NULL AND o.[DATE] > e.stop_dt
+GROUP BY o.CATEGORY
+ORDER BY COUNT(*) DESC;
+-- Results: surver 194924, laboratory 13187, vital-signs 4822, procedure 70, exam 5, therapy 3
+
+-- investigate time differences between observation and encounter end
+SELECT
+    o.CATEGORY,
+    COUNT(*) AS total_records,
+    MIN(DATEDIFF(DAY, e.stop_dt, o.[DATE])) AS min_days_after,
+    MAX(DATEDIFF(DAY, e.stop_dt, o.[DATE])) AS max_days_after,
+    AVG(CAST(DATEDIFF(DAY, e.stop_dt, o.[DATE]) AS decimal(18,2))) AS avg_days_after
+FROM bronze.ehr_observations o
+INNER JOIN bronze.ehr_encounters e
+ON o.ENCOUNTER = e.encntr_id
+WHERE e.stop_dt IS NOT NULL AND o.[DATE] > e.stop_dt
+GROUP BY o.CATEGORY
+ORDER BY COUNT(*) DESC;
+-- Results:
+-- Survey had the highest number of records (194,924), averaging 0.22 days.
+-- Laboratory and vital-signs averaged 1.57 and 3.70 days, respectively.
+-- Therapy had the longest average difference (21.67 days), with only 3 records.
+-- Date discrepancies will be preserved pending source validation.
+
+-- investigate observation category and type distribution
+SELECT 
+    CATEGORY,
+    [TYPE],
+    COUNT(*) AS total_records
+FROM bronze.ehr_observations
+GROUP BY CATEGORY, [TYPE]
+ORDER BY COUNT(*); 
+
+-- investigate VALUE conversion based on TYPE
+SELECT
+    [TYPE],
+    COUNT(*) AS total_records,
+    SUM(CASE WHEN TRY_CONVERT(DECIMAL(18,4), TRIM(VALUE)) IS NOT NULL THEN 1 ELSE 0
+    END) AS convertible_values,
+    SUM(CASE WHEN TRY_CONVERT(DECIMAL(18,4), TRIM(VALUE)) IS NULL THEN 1 ELSE 0
+    END) AS non_convertible_values
+FROM bronze.ehr_observations
+WHERE [TYPE] = 'numeric' AND VALUE IS NOT NULL
+GROUP BY [TYPE];
+-- Results: 
+-- All 331,164 numeric values were successfully converted.
+-- No non-convertible numeric values were identified.
+-- No numeric format correction was required.
+
+-- investigate NULL and blank numeric values
+SELECT
+    COUNT(*) AS total_numeric_records,
+    SUM(CASE WHEN VALUE IS NULL THEN 1 ELSE 0
+    END) AS null_values,
+    SUM(CASE WHEN TRIM(VALUE) = '' THEN 1 ELSE 0
+    END) AS blank_values,
+    SUM(CASE WHEN TRY_CONVERT(DECIMAL(18,4), TRIM(VALUE)) IS NOT NULL THEN 1 ELSE 0
+    END) AS convertible_values
+FROM bronze.ehr_observations
+WHERE [TYPE] = 'numeric';
+-- Results:
+-- All 331,164 numeric records contained valid values.
+-- No NULL or blank numeric values were identified.
+-- All numeric values were successfully converted.
+-- No numeric value correction was required.
+
+-- inspect sample text observation values
+SELECT
+    CATEGORY,
+    CODE,
+    [DESCRIPTION],
+    [VALUE],
+    UNITS
+FROM bronze.ehr_observations
+WHERE [TYPE] = 'text'
+ORDER BY category, code;
+-- Results:
+-- Text observations contained categorical values labeled as {nominal}.
+-- Nominal values represent text-based categories, not numerical measurements.
+-- No numeric conversion is required for text observations.
+-- Nominal units will be preserved during Silver transformation.
+
+-- investigate UNITS values in text observations
+SELECT
+    UNITS,
+    COUNT(*) AS total_records
+FROM bronze.ehr_observations
+WHERE [TYPE] = 'text'
+GROUP BY UNITS
+ORDER BY COUNT(*) DESC;
+-- Results:
+-- Seven distinct UNITS values were identified across 199,980 text records.
+-- Most records (184,538) had NULL units.
+-- Nominal units accounted for 6,068 records.
+-- Unusual unit values require further investigation before standardization.
+
+-- investigate unusual UNITS by CATEGORY
+SELECT
+    CATEGORY,
+    UNITS,
+    COUNT(*) AS total_records
+FROM bronze.ehr_observations
+WHERE [TYPE] = 'text' AND UNITS IS NOT NULL
+GROUP BY 
+    CATEGORY,
+    UNITS
+ORDER BY
+    UNITS,
+    COUNT(*) DESC;
+-- Results:
+-- Nine non-NULL UNITS combinations were identified across five categories.
+-- Survey accounted for 8,886 records with `/a` units.
+-- Nominal units were found across four categories (6,068 records).
+-- Other unit values require further investigation before standardization.
+
+-- investigate unusual UNITS values
+SELECT
+    CATEGORY,
+    CODE,
+    [DESCRIPTION],
+    [VALUE],
+    UNITS
+FROM bronze.ehr_observations
+WHERE [TYPE] = 'text' AND UNITS IN ('/a', 'null', 'n/a')
+ORDER BY CATEGORY, UNITS, CODE
+
+-- inspect unusual UNITS values
+SELECT
+    CATEGORY,
+    CODE,
+    [DESCRIPTION],
+    [VALUE],
+    UNITS
+FROM bronze.ehr_observations
+WHERE [TYPE] = 'text' AND UNITS IN ('/a', 'null', 'n/a')
+ORDER BY CATEGORY, CODE, [DESCRIPTION], [VALUE], UNITS;
+
+-- Preview transformed observation dataset before inserting into silver
+-- Remove exact duplicates from the preview results.
+-- Convert numeric VALUE entries to DECIMAL(18,4).
+-- Preserve text VALUE entries.
+-- Preserve original NULL values and UNITS values.
+SELECT
+    [DATE],
+    PATIENT,
+    ENCOUNTER,
+    CATEGORY,
+    CODE,
+    [DESCRIPTION],
+    [VALUE],
+    CASE WHEN [TYPE] = 'numeric' THEN TRY_CONVERT(DECIMAL(18,4), TRIM(VALUE)) ELSE NULL
+    END AS VALUE_NUMERIC,
+    UNITS,
+    [TYPE]
+FROM
+(
+    SELECT *,
+        ROW_NUMBER() OVER (PARTITION BY [DATE], PATIENT, ENCOUNTER, CATEGORY, CODE, [DESCRIPTION], [VALUE], UNITS, [TYPE]
+        ORDER BY (SELECT NULL)) AS row_num
+    FROM bronze.ehr_observations
+) AS ranked_observations
+WHERE row_num = 1;
+
+-- validate duplicate records excluded by ROW_NUMBER()
+-- validate exact duplicate removal
+SELECT
+    COUNT(*) AS total_bronze_records,
+    SUM(CASE WHEN row_num = 1 THEN 1 ELSE 0 END) AS retained_records,
+    SUM(CASE WHEN row_num > 1 THEN 1 ELSE 0 END) AS excluded_duplicates
+FROM
+(
+    SELECT
+        ROW_NUMBER() OVER (
+            PARTITION BY
+                [DATE], PATIENT, ENCOUNTER, CATEGORY,
+                CODE, [DESCRIPTION], [VALUE], UNITS, [TYPE]
+            ORDER BY (SELECT NULL)
+        ) AS row_num
+    FROM bronze.ehr_observations
+) AS ranked_observations;
+-- Results: 
+-- total_bronze_records = 53114
+-- retained_records = 530895
+-- excluded_duplicated = 249
+
+-- validate numeric conversion and text preservation
+SELECT
+    [TYPE],
+    COUNT(*) AS total_records,
+    SUM(CASE WHEN [TYPE] = 'numeric' AND TRY_CONVERT(DECIMAL(18,4), TRIM([VALUE])) IS NOT NULL THEN 1 ELSE 0
+    END) AS convertible_numeric,
+    SUM(CASE WHEN [TYPE] = 'numeric' AND TRY_CONVERT(DECIMAL(18,4), TRIM([VALUE])) IS NULL THEN 1 ELSE 0
+    END) AS non_convertible_numeric,
+    SUM(CASE WHEN [TYPE] = 'text' AND [VALUE] IS NOT NULL THEN 1 ELSE 0 END) AS preserved_text_values
+FROM
+(
+    SELECT *
+    FROM
+    (
+        SELECT *,
+            ROW_NUMBER() OVER (PARTITION BY [DATE], PATIENT, ENCOUNTER, CATEGORY,CODE, [DESCRIPTION], [VALUE], UNITS, [TYPE]
+            ORDER BY (SELECT NULL)) AS row_num
+        FROM bronze.ehr_observations
+    ) AS ranked_observations
+    WHERE row_num = 1
+) AS preview_data
+GROUP BY [TYPE];
+-- Results:
+-- total_records for text = 199980, convertible_numeric = 0, non_convertible_numeric = 0, preserved _text_values = 1999980
+-- total_records for numeric = 330915, convertible_numeric = 330915, non_convertible_numeric = 0, preserved_text_values = 0
+
+-- validate original source values are preserved
+-- Expected Results: No Results
+SELECT
+    [DATE],
+    PATIENT,
+    ENCOUNTER,
+    CATEGORY,
+    CODE,
+    [DESCRIPTION],
+    [VALUE],
+    UNITS,
+    [TYPE]
+FROM bronze.ehr_observations
+EXCEPT
+SELECT
+    [DATE],
+    PATIENT,
+    ENCOUNTER,
+    CATEGORY,
+    CODE,
+    [DESCRIPTION],
+    [VALUE],
+    UNITS,
+    [TYPE]
+FROM
+(
+    SELECT *,
+        ROW_NUMBER() OVER (PARTITION BY [DATE], PATIENT, ENCOUNTER, CATEGORY, CODE, [DESCRIPTION], [VALUE], UNITS, [TYPE]
+            ORDER BY (SELECT NULL)) AS row_num
+    FROM bronze.ehr_observations
+) AS ranked_observations
+WHERE row_num = 1; 
+
