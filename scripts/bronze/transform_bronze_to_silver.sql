@@ -59,6 +59,9 @@ FROM bronze.ehr_patients;
 SELECT DISTINCT state
 FROM bronze.ehr_patients;
 
+SELECT DISTINCT state
+FROM bronze.ehr_patients;
+
 -- Preview standardized providers attributes prior insert to silver.ehr_patients
 -- M -> Married; S -> Single
 -- F -> Female; M -> Male
@@ -79,7 +82,9 @@ SELECT
          WHEN gender IS NULL THEN 'N/A'
          ELSE gender
     END AS gender,
-    state,
+    CASE WHEN TRIM(state) = 'Massachusetts' THEN 'MA'
+    	 ELSE TRIM(state)
+	END AS state,
     healthcare_expenses,
     healthcare_coverage   
 FROM bronze.ehr_patients
