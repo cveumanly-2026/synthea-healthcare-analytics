@@ -104,8 +104,8 @@ CREATE TABLE silver.ehr_org
 );
 GO
 
-IF OBJECT_ID ('silver.ehr_org' , 'U') IS NOT NULL
-	DROP TABLE silver.ehr_org;
+IF OBJECT_ID ('silver.ehr_patients' , 'U') IS NOT NULL
+	DROP TABLE silver.ehr_patients;
 GO
 CREATE TABLE silver.ehr_patients
 (
