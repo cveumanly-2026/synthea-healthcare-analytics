@@ -19,7 +19,8 @@ CREATE TABLE silver.ehr_conditions
 	px_id NVARCHAR(36),
 	encntr_id NVARCHAR(36), 
 	cond_code NVARCHAR(50),
-	cond_desc NVARCHAR(255)
+	cond_desc NVARCHAR(255),
+    dwh_create_date DATETIME2 DEFAULT GETDATE()
 );
 GO
 
@@ -43,6 +44,7 @@ CREATE TABLE silver.ehr_encounters
     payer_coverage DECIMAL(18,2),
     reason_code NVARCHAR(50),
     reason_desc NVARCHAR(255)
+    dwh_create_date DATETIME2 DEFAULT GETDATE()
 );
 GO
 
@@ -63,7 +65,8 @@ CREATE TABLE silver.ehr_medications
     dispenses INT,
     total_cost DECIMAL(18,2),
     reason_code NVARCHAR(50),
-    reason_desc NVARCHAR(500)
+    reason_desc NVARCHAR(500),
+    dwh_create_date DATETIME2 DEFAULT GETDATE()
 );
 GO
 
@@ -81,7 +84,8 @@ CREATE TABLE silver.ehr_observations
     obs_value NVARCHAR(500),
     obs_value_numeric DECIMAL(18,4),
     units NVARCHAR(100),
-    obs_type NVARCHAR(30)
+    obs_type NVARCHAR(30),
+    dwh_create_date DATETIME2 DEFAULT GETDATE()
 );
 GO
 
@@ -100,7 +104,8 @@ CREATE TABLE silver.ehr_org
     lon DECIMAL(9,6),
     phone NVARCHAR(50),
     revenue DECIMAL(18,2),
-    utilization BIGINT
+    utilization BIGINT,
+    dwh_create_date DATETIME2 DEFAULT GETDATE()
 );
 GO
 
@@ -118,7 +123,8 @@ CREATE TABLE silver.ehr_patients
     gender NVARCHAR(20),
     state NVARCHAR(100),
     healthcare_expenses DECIMAL(18,2),
-    healthcare_coverage DECIMAL(18,2)
+    healthcare_coverage DECIMAL(18,2),
+    dwh_create_date DATETIME2 DEFAULT GETDATE()
 );
 GO
 
@@ -135,7 +141,8 @@ CREATE TABLE silver.ehr_procedures
     proc_desc NVARCHAR(1000),
     base_cost DECIMAL(18,2),
     reason_code NVARCHAR(50),
-    reason_desc NVARCHAR(500)
+    reason_desc NVARCHAR(500),
+    dwh_create_date DATETIME2 DEFAULT GETDATE()
 );
 GO
 
@@ -149,7 +156,10 @@ CREATE TABLE silver.ehr_providers
     gender NVARCHAR(20),
     specialty NVARCHAR(100),
     state NVARCHAR(100),
-    utilization INT
+    utilization INT,
+    dwh_create_date DATETIME2 DEFAULT GETDATE()
 );
+
+
 
 
