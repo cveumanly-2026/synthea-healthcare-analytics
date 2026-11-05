@@ -43,7 +43,7 @@ CREATE TABLE silver.ehr_encounters
     total_claim_cost DECIMAL(18,2),
     payer_coverage DECIMAL(18,2),
     reason_code NVARCHAR(50),
-    reason_desc NVARCHAR(255)
+    reason_desc NVARCHAR(255),
     dwh_create_date DATETIME2 DEFAULT GETDATE()
 );
 GO
