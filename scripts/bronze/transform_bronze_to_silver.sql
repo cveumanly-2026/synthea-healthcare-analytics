@@ -283,6 +283,91 @@ SELECT org_id
 FROM bronze.ehr_encounters
 WHERE org_id NOT IN (SELECT org_id FROM bronze.ehr_providers);
 
+-- Investigate description variations in Bronze
+SELECT
+    encntr_class,
+    encntr_code,
+    encntr_desc,
+    COUNT(*) AS total_records
+FROM bronze.ehr_encounters
+GROUP BY
+    encntr_class,
+    encntr_code,
+    encntr_desc
+HAVING encntr_desc LIKE '%(procedure)%'
+ORDER BY
+    encntr_class,
+    encntr_code;
+
+-- Investigate descriptions that will be standardized into one description
+SELECT
+    encntr_class,
+    encntr_code,
+    TRIM(REPLACE(encntr_desc, '(procedure)', ''))
+        AS standardized_description,
+    COUNT(DISTINCT encntr_desc) AS original_variations,
+    COUNT(*) AS total_records
+FROM bronze.ehr_encounters
+GROUP BY
+    encntr_class,
+    encntr_code,
+    TRIM(REPLACE(encntr_desc, '(procedure)', ''))
+HAVING COUNT(DISTINCT encntr_desc) > 1
+ORDER BY
+    encntr_class,
+    encntr_code;
+
+-- Investigate description variations in Bronze
+SELECT
+    encntr_class,
+    encntr_code,
+    encntr_desc,
+    COUNT(*) AS total_records
+FROM bronze.ehr_encounters
+GROUP BY
+    encntr_class,
+    encntr_code,
+    encntr_desc
+HAVING encntr_desc LIKE '%(procedure)%'
+ORDER BY
+    encntr_class,
+    encntr_code;
+
+-- Investigate descriptions that will be standardized into one description
+SELECT
+    encntr_class,
+    encntr_code,
+    TRIM(REPLACE(encntr_desc, '(procedure)', ''))
+        AS standardized_description,
+    COUNT(DISTINCT encntr_desc) AS original_variations,
+    COUNT(*) AS total_records
+FROM bronze.ehr_encounters
+GROUP BY
+    encntr_class,
+    encntr_code,
+    TRIM(REPLACE(encntr_desc, '(procedure)', ''))
+HAVING COUNT(DISTINCT encntr_desc) > 1
+ORDER BY
+    encntr_class,
+    encntr_code;
+
+-- Preview original and standardized encounter descriptions
+SELECT
+    encntr_class,
+    encntr_code,
+    encntr_desc AS original_description,
+    TRIM(REPLACE(encntr_desc, '(procedure)', '')) AS standardized_description,
+    COUNT(*) AS total_records
+FROM bronze.ehr_encounters
+WHERE encntr_desc LIKE '%(procedure)%'
+GROUP BY
+    encntr_class,
+    encntr_code,
+    encntr_desc
+ORDER BY
+    encntr_class,
+    encntr_code;
+
 -- Check for Invalid Dates ehr_encounters
 -- Expected Result: No Results
 SELECT 
@@ -306,34 +391,38 @@ FROM bronze.ehr_encounters; -- Results: There's NULL
 SELECT DISTINCT reason_desc
 FROM bronze.ehr_encounters; -- Results: There's NULL
 
--- Preview standardized customer attributes prior insert to silver.ehr_encounters
--- NULL --> 'N/A'
--- Transform table bronze.ehr_encounters
+-- Preview standardized encounters attributes prior insert to silver.ehr_encounters
+-- Validate and standardize encounter dates
+-- Correct identified encounter codes
+-- Remove '(procedure)' from descriptions
+-- Replace NULL reason values with 'N/A'
 SELECT 
     encntr_id,
-    CASE WHEN start_dt < '1900-01-01' OR start_dt > '2050-01-01' THEN NULL
-        ELSE CAST(start_dt AS DATETIME2(0))
-    END AS start_dt,
-    CASE WHEN stop_dt < '1900-01-01' OR stop_dt > '2050-01-01' THEN NULL
-        ELSE CAST(stop_dt AS DATETIME2(0))
+    CASE WHEN start_dt < '1900-01-01' OR start_dt > '2050-01-01' -- Standardize encounter dates
+        THEN NULL ELSE CAST(start_dt AS DATETIME2(0))
+    END AS start_dt, 
+    CASE WHEN stop_dt < '1900-01-01' OR stop_dt > '2050-01-01'
+        THEN NULL ELSE CAST(stop_dt AS DATETIME2(0))
     END AS stop_dt,
     px_id,
     org_id,
     provider_id,
     payer_id,
     encntr_class,
-    encntr_code,
-    encntr_desc,
+    CASE WHEN encntr_code = '1853470'  -- Standardize identified encounter code
+		AND encntr_class = 'ambulatory' 
+		AND encntr_desc = 'Encounter for problem (procedure)'
+        THEN '185347001' ELSE encntr_code
+    END AS encntr_code,
+    TRIM(REPLACE(encntr_desc, '(procedure)', '')) AS encntr_desc, -- Remove '(procedure)' from descriptions
     base_encntr_cost,
     total_claim_cost,
     payer_coverage,
-    CASE WHEN reason_code IS NULL THEN 'N/A'
-        ELSE reason_code
-    END AS reason_code,
-    CASE WHEN reason_desc IS NULL THEN 'N/A'
-        ELSE reason_desc
+    CASE WHEN reason_code IS NULL THEN 'N/A' ELSE reason_code  -- Replace NULL reason code with N/A
+    END AS reason_code, 
+    CASE WHEN reason_desc IS NULL THEN 'N/A' ELSE reason_desc  -- Replace NULL reason description with N/A
     END AS reason_desc
-FROM bronze.ehr_encounters
+FROM bronze.ehr_encounters;
 
 -- =====================================================================
 -- 5. TRANSFORMING 'bronze.ehr_medications'
