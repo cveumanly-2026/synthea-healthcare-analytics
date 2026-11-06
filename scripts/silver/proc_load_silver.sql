@@ -93,25 +93,29 @@ BEGIN
 		)
 		SELECT 
 			encntr_id,
-			CASE WHEN start_dt < '1900-01-01' OR start_dt > '2050-01-01' THEN NULL
-				ELSE CAST(start_dt AS DATETIME2(0))
-			END AS start_dt,
-			CASE WHEN stop_dt < '1900-01-01' OR stop_dt > '2050-01-01' THEN NULL
-				ELSE CAST(stop_dt AS DATETIME2(0))
+			CASE WHEN start_dt < '1900-01-01' OR start_dt > '2050-01-01' -- Standardize encounter dates
+				THEN NULL ELSE CAST(start_dt AS DATETIME2(0))
+			END AS start_dt, 
+			CASE WHEN stop_dt < '1900-01-01' OR stop_dt > '2050-01-01'
+				THEN NULL ELSE CAST(stop_dt AS DATETIME2(0))
 			END AS stop_dt,
 			px_id,
 			org_id,
 			provider_id,
 			payer_id,
 			encntr_class,
-			encntr_code,
-			encntr_desc,
+			CASE WHEN encntr_code = '1853470'  
+				 AND encntr_class = 'ambulatory' 
+				 AND encntr_desc = 'Encounter for problem (procedure)'
+				 THEN '185347001' ELSE encntr_code
+			END AS encntr_code,
+			TRIM(REPLACE(encntr_desc, '(procedure)', '')) AS encntr_desc, 
 			base_encntr_cost,
 			total_claim_cost,
 			payer_coverage,
-			CASE WHEN reason_code IS NULL THEN 'N/A' ELSE reason_code
-			END AS reason_code,
-			CASE WHEN reason_desc IS NULL THEN 'N/A' ELSE reason_desc
+			CASE WHEN reason_code IS NULL THEN 'N/A' ELSE reason_code  
+			END AS reason_code, 
+			CASE WHEN reason_desc IS NULL THEN 'N/A' ELSE reason_desc 
 			END AS reason_desc
 		FROM bronze.ehr_encounters;
 		SET @end_time = GETDATE();
